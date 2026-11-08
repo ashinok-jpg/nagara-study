@@ -1,4 +1,4 @@
-import { pickTermDistractors, termKind } from '../distractors';
+import { pickNumberDistractors, pickTermDistractors, termKind } from '../distractors';
 import { mulberry32 } from '../random';
 
 describe('termKind（語の種類の推定）', () => {
@@ -45,7 +45,6 @@ describe('語尾で判定できない企業名・業態', () => {
 
 describe('大きい数のハズレ', () => {
   it('±1 のような見分けのつかない値を出さない', () => {
-    const { pickNumberDistractors } = jest.requireActual('../distractors');
     const ans = { text: '2,080億', value: 2080, decimals: 0, comma: true, mult: '億', unit: '個' };
     const d: string[] = pickNumberDistractors(ans, [], 3, mulberry32(3));
     expect(d).toHaveLength(3);

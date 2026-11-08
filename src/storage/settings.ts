@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from './kv';
 
 import type { ChunkSize } from '../engine';
 
@@ -12,6 +12,10 @@ export interface Settings {
   speechRate: number;
   vibrate: boolean;
   defaultChunkSize: ChunkSize;
+  /** カードが届いたときに短い音を鳴らす（Web 版） */
+  sound: boolean;
+  /** セッション中は画面を消さない（Web 版、Screen Wake Lock） */
+  keepAwake: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   speechRate: 1.0,
   vibrate: true,
   defaultChunkSize: 'normal',
+  sound: true,
+  keepAwake: false,
 };
 
 const KEY = 'nagara.settings.v1';
