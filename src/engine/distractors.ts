@@ -12,6 +12,33 @@ export function charClass(s: string): CharClass {
   return 'mixed';
 }
 
+export type TermKind = 'person' | 'event' | 'law' | 'polity' | 'org' | 'idea' | 'place';
+
+/**
+ * 語の「種類」を語尾から推定する（人物・出来事・条約や法・国や王朝・組織・思想や制度・地名）。
+ * わからなければ null。ハズレ選択肢を同じ種類にそろえるために使う。
+ */
+export function termKind(s: string): TermKind | null {
+  const t = s.trim();
+  if (/(戦争|戦い|の乱|[^混]乱|の変|革命|紛争|危機|事件|運動|改革|遠征|恐慌|虐殺|大戦|会戦|侵攻)$/.test(t)) return 'event';
+  if (/(条約|協定|[^方]法|宣言|勅令|憲章|和約|議定書|協約|の盟|[^命]令|憲法)$/.test(t)) return 'law';
+  if (/(会社|同盟|[^徒]党|会議|連合|機構|銀行|騎士団|教団|公社|協会|ファウンドリ)$/.test(t)) return 'org';
+  if (/(帝国|王国|共和国|連邦|王朝|政権|[^王]朝)$/.test(t)) return 'polity';
+  if (/^(東|西|南|北|前|後)?[殷周秦漢晋隋唐宋元明清魏蜀呉金遼夏]$/.test(t)) return 'polity';
+  if (/(主義|制度|[^体]制|思想|学派|[^宗]教)$/.test(t)) return 'idea';
+  if (/[ァ-ヴ][=＝][ァ-ヴ]/.test(t)) return 'person';
+  if (/([0-9０-９一二三四五六七八九十]+世|皇帝|大王|教皇|[^皇]帝|[^国]王|太宗|太祖|高祖)$/.test(t)) return 'person';
+  if (/(半島|海峡|[^航]海|[^火]山|川|河|湾|島|平原|高原|砂漠)$/.test(t)) return 'place';
+  return null;
+}
+
+/** 答えとハズレの種類が食い違っていないか（どちらも推定できて、違う種類なら false） */
+export function sameKindOrUnknown(a: string, b: string): boolean {
+  const ka = termKind(a);
+  const kb = termKind(b);
+  return ka === null || kb === null || ka === kb;
+}
+
 /** 答えとして使えないハズレか（同じ・含む・含まれる・問題文に出ている） */
 export function isValidDistractor(d: string, answer: string, prompt: string): boolean {
   if (!d || d === answer) return false;
@@ -35,11 +62,17 @@ export function pickTermDistractors(
   const seen = new Set<string>();
   const scored: { d: string; score: number }[] = [];
   const cls = charClass(answer);
+  const kind = termKind(answer);
   const len = Array.from(answer).length;
   const add = (d: string, bonus: number) => {
     if (seen.has(d) || !isValidDistractor(d, answer, prompt)) return;
+    // 種類が違うと一目でハズレとわかる（人物を問うのに「東インド会社」など）ので使わない
+    if (!sameKindOrUnknown(answer, d)) return;
     seen.add(d);
     let score = bonus;
+    const dk = termKind(d);
+    if (kind !== null && dk === kind) score += 4;
+    else if (kind === null && dk === null) score += 1;
     if (charClass(d) === cls) score += 3;
     const dl = Array.from(d).length;
     score -= Math.abs(dl - len) / Math.max(2, len);

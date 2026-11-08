@@ -1,7 +1,7 @@
 // SPEC 3章 問題作成（ルールのみ・AIなし）
 
 import { A_LINE, LIST_ITEM, matchGlossary, Q_LINE } from './blocks';
-import { pickNumberDistractors, pickTermDistractors, type NumInfo } from './distractors';
+import { pickNumberDistractors, pickTermDistractors, termKind, type NumInfo } from './distractors';
 import { boldRanges, countChars, stripMarkers } from './markup';
 import { deriveRng, shuffle, type Rng } from './random';
 import { bracketRanges, splitSentences } from './sentences';
@@ -325,7 +325,11 @@ function build(c: Candidate, id: string, chunkId: string, pools: Pools, rng: Rng
 
   if (c.tf && c.sentence && distractors.length >= 1 && rng() < TF_RATE) {
     if (rng() < TF_TRUE_RATE) return { ...base, kind: 'truefalse', prompt: c.sentence, answer: true };
-    return { ...base, kind: 'truefalse', prompt: c.prompt.replace(BLANK, distractors[0]), answer: false, correction: c.sentence };
+    // 間違いの文は、入れ替える語が答えと同じ種類のときだけ作る（「黒死病が宋を建て」のような一目でわかる×を防ぐ）
+    // 種類がわからない語どうしの入れ替えは不自然な文になりやすいので、種類がわかる語に限る
+    const kind = termKind(c.answer);
+    const swap = kind === null ? undefined : distractors.find((d) => termKind(d) === kind);
+    if (swap) return { ...base, kind: 'truefalse', prompt: c.prompt.replace(BLANK, swap), answer: false, correction: c.sentence };
   }
   if (distractors.length >= 3) {
     const choices = shuffle([c.answer, ...distractors.slice(0, 3)], rng);

@@ -150,8 +150,22 @@ describe('問題の形式', () => {
     mk('物質を分解する反応を**異化**という。', null, 4),
   ];
 
-  it('同じ種類のハズレが3つ以上あれば4択、約30%は○×', () => {
+  // 種類（人物・出来事など）がわかる語の教材。間違いの○×は、種類がわかる語どうしの入れ替えでだけ作る
+  const KIND_DECK = [
+    mk('1453年、**メフメト2世**がコンスタンティノープルを攻め落とした。', null, 0),
+    mk('スペインの最盛期の王は**フェリペ2世**である。', null, 1),
+    mk('フランスの絶対王政の頂点は**ルイ14世**である。', null, 2),
+    mk('神聖ローマ皇帝の**カール5世**はルターと対立した。', null, 3),
+    mk('イギリスの**エリザベス1世**は国教会を確立した。', null, 4),
+  ];
+
+  it('種類がわからない語では、間違いの○×を作らない', () => {
     const qs = genMany(MARKER_DECK, 60);
+    expect(qs.some((q) => q.kind === 'truefalse' && !q.answer)).toBe(false);
+  });
+
+  it('同じ種類のハズレが3つ以上あれば4択、約30%は○×', () => {
+    const qs = genMany(KIND_DECK, 60);
     const kinds = qs.map((q) => q.kind);
     expect(kinds).not.toContain('recall');
     const tf = kinds.filter((k) => k === 'truefalse').length / kinds.length;
@@ -160,7 +174,7 @@ describe('問題の形式', () => {
   });
 
   it('○×：× のときはハズレに入れ替えた文と正しい文、○ のときは元の文', () => {
-    const qs = genMany(MARKER_DECK, 60).filter((q) => q.kind === 'truefalse');
+    const qs = genMany(KIND_DECK, 60).filter((q) => q.kind === 'truefalse');
     expect(qs.some((q) => q.kind === 'truefalse' && !q.answer)).toBe(true);
     for (const q of qs) {
       if (q.kind !== 'truefalse') continue;
