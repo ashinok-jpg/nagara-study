@@ -1,5 +1,7 @@
 // materials/ の教材を、アプリと同じエンジンで検査する（docs/RESEARCH_RULES.md 1.4）
-// 生成された全問題を見たいときは MATERIALS_DUMP=1 を付けて実行する。
+// 使い方：npm run check:materials
+//   MATERIALS_DUMP=1   … 生成された全カードと全問題を表示する
+//   MATERIALS_FILTER=cpp … パスにこの文字列を含むファイルだけ検査する（例：security/02）
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -18,7 +20,8 @@ function listMaterials(): string[] {
       if (f.endsWith('.md') && f !== 'SOURCES.md' && !f.startsWith('_')) out.push(path.join(dir, f));
     }
   }
-  return out.sort();
+  const filter = process.env.MATERIALS_FILTER;
+  return out.filter((f) => !filter || path.relative(ROOT, f).includes(filter)).sort();
 }
 
 function answerText(q: Question): string {
