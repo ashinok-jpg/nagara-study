@@ -18,11 +18,24 @@ export type TermKind = 'person' | 'event' | 'law' | 'polity' | 'org' | 'idea' | 
  * 語の「種類」を語尾から推定する（人物・出来事・条約や法・国や王朝・組織・思想や制度・地名）。
  * わからなければ null。ハズレ選択肢を同じ種類にそろえるために使う。
  */
+/** 語尾では判定できない、よく出る企業・団体名（半導体・IT） */
+const KNOWN_ORGS = new Set([
+  'TSMC', 'ASML', 'NVIDIA', 'エヌビディア', 'インテル', 'Intel', 'サムスン', 'サムスン電子', 'SKハイニックス', 'マイクロン', 'AMD',
+  'クアルコム', 'アップル', 'Apple', 'ブロードコム', 'アーム', 'Arm', 'ASE', 'ソニー', 'ソニーグループ', 'キオクシア', 'ラピダス', 'Rapidus',
+  'ディスコ', 'レーザーテック', '東京エレクトロン', 'アドバンテスト', 'SCREEN', '信越化学工業', 'SUMCO', 'JSR', 'ルネサス', 'ルネサスエレクトロニクス',
+  'JASM', 'テキサス・インスツルメンツ', 'アナログ・デバイセズ', 'インフィニオン', 'インフィニオン・テクノロジーズ', 'SMIC', 'ファーウェイ', 'グーグル', 'マイクロソフト',
+  'ガートナー', 'トレンドフォース', 'SEMI', 'SIA', 'WSTS', '東芝', '日立', 'NEC', '富士通', 'シャープ',
+]);
+/** 語尾では判定できない、業態や工程を表す用語 */
+const KNOWN_IDEAS = new Set(['ファブレス', 'ファウンドリ', 'IDM', 'OSAT', 'サプライチェーン', 'ムーアの法則', '微細化', '歩留まり', 'CMP', 'EDA', 'IP']);
+
 export function termKind(s: string): TermKind | null {
   const t = s.trim();
+  if (KNOWN_ORGS.has(t)) return 'org';
+  if (KNOWN_IDEAS.has(t)) return 'idea';
   if (/(戦争|戦い|の乱|[^混]乱|の変|革命|紛争|危機|事件|運動|改革|遠征|恐慌|虐殺|大戦|会戦|侵攻)$/.test(t)) return 'event';
   if (/(条約|協定|[^方]法|宣言|勅令|憲章|和約|議定書|協約|の盟|[^命]令|憲法)$/.test(t)) return 'law';
-  if (/(会社|同盟|[^徒]党|会議|連合|機構|銀行|騎士団|教団|公社|協会|ファウンドリ)$/.test(t)) return 'org';
+  if (/(会社|同盟|[^徒]党|会議|連合|機構|銀行|騎士団|教団|公社|協会)$/.test(t)) return 'org';
   if (/(帝国|王国|共和国|連邦|王朝|政権|[^王]朝)$/.test(t)) return 'polity';
   if (/^(東|西|南|北|前|後)?[殷周秦漢晋隋唐宋元明清魏蜀呉金遼夏]$/.test(t)) return 'polity';
   if (/(主義|制度|[^体]制|思想|学派|[^宗]教)$/.test(t)) return 'idea';
@@ -137,7 +150,14 @@ function synthesize(n: NumInfo, rng: Rng): number[] {
     c = [v - 5, v + 5, v - 10, v + 10, v + 20, v - 20, v * 2, v / 2].filter((x) => x > 0 && x <= 100);
   } else if (n.decimals > 0) c = [v - step, v + step, v * 0.9, v * 1.1, v * 2, v / 2];
   else if (v <= 10) c = [v - 1, v + 1, v + 2, v - 2, v + 3, v * 2];
-  else c = [v * 0.9, v * 1.1, v - 1, v + 1, v * 2, v / 2, v + 10, v - 10];
+  else if (v >= 100) {
+    // 大きい数は ±1 では見分けがつかないので、有効数字2桁で目に見えて違う値にする
+    const r = (x: number) => {
+      const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(x)) - 1));
+      return Math.round(x / p) * p;
+    };
+    c = [r(v * 0.8), r(v * 1.2), r(v * 0.6), r(v * 1.5), r(v * 2), r(v / 2)];
+  } else c = [v * 0.9, v * 1.1, v - 1, v + 1, v * 2, v / 2, v + 10, v - 10];
   c = c.map((x) => (n.decimals > 0 ? Number(x.toFixed(n.decimals)) : Math.round(x)));
   const near = c.slice(0, 4);
   const far = c.slice(4);

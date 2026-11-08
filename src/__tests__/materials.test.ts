@@ -43,7 +43,6 @@ const files = listMaterials();
         lines.push(`  (${q.kind}/${q.source}) ${q.prompt}${extra}`);
       }
     }
-    // eslint-disable-next-line no-console
     console.log(lines.join('\n'));
   }
 
