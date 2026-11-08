@@ -35,10 +35,19 @@ const TABLE_SEP = /^\|[\s:\-|]+$/;
 
 /** 用語行 `語：説明`（語は20字以下）。当てはまれば [語, 説明]（マーカーは残す） */
 export function matchGlossary(line: string): [string, string] | null {
-  const m = /^([^：:]{1,40}?)\s*[：:]\s*(\S.*)$/.exec(line);
-  if (!m) return null;
-  const term = m[1].trim();
-  const desc = m[2].trim();
+  // 区切りは「：」か、単独の「:」。C++ の「std::vector」のような「::」は区切りとみなさない
+  let sep = -1;
+  for (let i = 0; i < Math.min(line.length, 41); i++) {
+    const ch = line[i];
+    if (ch === '：' || (ch === ':' && line[i - 1] !== ':' && line[i + 1] !== ':')) {
+      sep = i;
+      break;
+    }
+  }
+  if (sep <= 0) return null;
+  const term = line.slice(0, sep).trim();
+  const desc = line.slice(sep + 1).trim();
+  if (!term || !desc || /^\s*$/.test(desc)) return null;
   const plainTerm = stripMarkers(term);
   if (!plainTerm || countChars(plainTerm) > 20) return null;
   if (/[。！？!?「」]/.test(plainTerm)) return null;

@@ -172,6 +172,8 @@ function numberCands(p: string, push: (c: Omit<Candidate, 'order'>) => void) {
     const next = p[i + m[0].length] ?? '';
     if (UNIT_STOP[unit]?.test(next)) continue;
     if (/^[〜~]/.test(next)) continue;
+    // 「2026年11月時点」「2025年現在」のような時点の表記は問題にしない
+    if (/^(?:[0-9０-９]{1,2}月)?(?:[0-9０-９]{1,2}日)?(?:時点|現在)/.test(p.slice(i + m[0].length))) continue;
     const half = toHalf(m[1]);
     const value = parseFloat(half.replace(/,/g, ''));
     if (!isFinite(value)) continue;
